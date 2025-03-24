@@ -1,0 +1,18 @@
+services:
+  api:
+    build:
+      dockerfile: ./Dockerfile
+      context: .
+    ports:
+      - "5882:5882"
+    environment:
+      - PORT=5882
+    volumes:
+      - ./data:/data
+    develop:
+      watch:
+        - action: rebuild
+          path: ./src
+          target: ./app
+          ignore:
+            - .git/
