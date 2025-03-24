@@ -14,12 +14,13 @@ pub fn main() !void {
     const port: u16 = env.getInt(u16, "PORT", 5888);
 
     var app = App.init();
-    var server = try httpz.Server(*App).init(allocator, .{ .port = port }, &app);
+    var server = try httpz.Server(*App).init(allocator, .{ .port = port, .address = "0.0.0.0" }, &app);
     var router = try server.router(.{});
 
     router.get("/dummy/:id", dummy.get, .{});
     router.get("/status", healtCheck.get, .{});
 
     // start the server in the current thread, blocking.
+    std.log.info("server started at port: {d}", .{port});
     try server.listen();
 }
