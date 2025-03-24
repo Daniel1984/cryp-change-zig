@@ -9,6 +9,7 @@ const dummy = @import("./handlers/dummy.zig");
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
+    defer gpa.deinit();
 
     var env = Env.init(allocator);
     const port: u16 = env.getInt(u16, "PORT", 5888);
