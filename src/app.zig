@@ -16,7 +16,7 @@ pub fn notFound(_: *App, req: *httpz.Request, res: *httpz.Response) !void {
 pub fn uncaughtError(_: *App, req: *httpz.Request, res: *httpz.Response, err: anyerror) void {
     std.log.info("500 {} {s} {}", .{ req.method, req.url.path, err });
     res.status = 500;
-    res.body = "sorry";
+    res.body = "Oops, something went wrong...";
 }
 
 pub fn init() App {
