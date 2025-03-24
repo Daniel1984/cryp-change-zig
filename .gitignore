@@ -2,3 +2,4 @@
 zig-out/
 main
 main.o
+.DS_Store
