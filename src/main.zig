@@ -5,23 +5,34 @@ const App = @import("./app.zig");
 const Env = @import("./env.zig");
 const healtCheck = @import("./handlers/health-check.zig");
 const dummy = @import("./handlers/dummy.zig");
+const bfx = @import("./bfx/trading-pairs.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    defer gpa.deinit();
+    defer _ = gpa.deinit();
 
     var env = Env.init(allocator);
     const port: u16 = env.getInt(u16, "PORT", 5888);
 
+    const bfx_trading_pairs = try bfx.fetchTradingPairs(allocator);
+    defer bfx_trading_pairs.deinit();
+
+    std.debug.print("Fetched {d} BFX trading pairs:\n", .{bfx_trading_pairs.items.len});
+    for (bfx_trading_pairs.items) |pair| {
+        std.debug.print("pair: {s}\n", .{pair});
+    }
+
     var app = App.init();
     var server = try httpz.Server(*App).init(allocator, .{ .port = port, .address = "0.0.0.0" }, &app);
-    var router = try server.router(.{});
 
+    defer server.deinit();
+    defer server.stop();
+
+    var router = try server.router(.{});
     router.get("/dummy/:id", dummy.get, .{});
     router.get("/status", healtCheck.get, .{});
 
-    // start the server in the current thread, blocking.
     std.log.info("server started at port: {d}", .{port});
     try server.listen();
 }
