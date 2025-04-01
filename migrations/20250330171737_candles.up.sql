@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS candles (
+    id SERIAL PRIMARY KEY,
+    pair TEXT NOT NULL,
+    exchange TEXT NOT NULL,
+    high INTEGER NOT NULL DEFAULT 0 CHECK (high >= 0),
+    low INTEGER NOT NULL DEFAULT 0 CHECK (low >= 0),
+    open INTEGER NOT NULL DEFAULT 0 CHECK (open >= 0),
+    close INTEGER NOT NULL DEFAULT 0 CHECK (close >= 0),
+    volume REAL NOT NULL DEFAULT 0 CHECK (volume >= 0),
+    timestamp BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+);
