@@ -4,3 +4,4 @@ main
 main.o
 .DS_Store
 .env
+data/
