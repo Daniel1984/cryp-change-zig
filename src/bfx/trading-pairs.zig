@@ -2,8 +2,82 @@ const std = @import("std");
 const http = std.http;
 const heap = std.heap;
 const json = std.json;
+const time = std.time;
 
-pub fn fetchTradingPairs(allocator: std.mem.Allocator) !std.ArrayList([]u8) {
+pub const Self = @This();
+
+allocator: std.mem.Allocator,
+pairs: [][]u8,
+interval_ns: i64,
+is_running: bool,
+thread: ?std.Thread,
+mutex: std.Thread.Mutex,
+
+pub fn init(allocator: std.mem.Allocator, interval_seconds: i64) !Self {
+    return Self{
+        .allocator = allocator,
+        .pairs = &[_][]u8{},
+        .interval_ns = interval_seconds * time.ns_per_s,
+        .is_running = false,
+        .thread = null,
+        .mutex = std.Thread.Mutex{},
+    };
+}
+
+pub fn deinit(self: *Self) void {
+    self.stop();
+}
+
+pub fn start(self: *Self) !void {
+    if (self.is_running) return error.ServiceAlreadyRunning;
+
+    if (fetchTradingPairs(self.allocator)) |pairs| {
+        self.pairs = pairs;
+    } else |err| {
+        std.debug.print("err making initial fetchTradingPairs call: {}\n", .{err});
+    }
+
+    self.is_running = true;
+    self.thread = try std.Thread.spawn(.{}, fetchLoop, .{self});
+}
+
+pub fn stop(self: *Self) void {
+    if (!self.is_running) return;
+
+    self.is_running = false;
+    if (self.thread) |thread| {
+        thread.join();
+        self.thread = null;
+    }
+}
+
+pub fn getPairs(self: *Self) ![][]u8 {
+    self.mutex.lock();
+    defer self.mutex.unlock();
+
+    var result = std.ArrayList([]u8).init(self.allocator);
+    for (self.pairs) |pair| {
+        const prefixed = try std.fmt.allocPrint(self.allocator, "t{s}", .{pair});
+        try result.append(prefixed);
+    }
+    return result.toOwnedSlice();
+}
+
+fn fetchLoop(self: *Self) void {
+    while (self.is_running) {
+        if (fetchTradingPairs(self.allocator)) |new_pairs| {
+            self.mutex.lock();
+            self.pairs = new_pairs;
+            self.mutex.unlock();
+        } else |err| {
+            std.log.err("Failed to fetch trading pairs: {any}", .{err});
+        }
+
+        std.time.sleep(@intCast(self.interval_ns));
+    }
+}
+
+fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
     var client = http.Client{ .allocator = allocator };
     defer client.deinit();
 
@@ -25,12 +99,13 @@ pub fn fetchTradingPairs(allocator: std.mem.Allocator) !std.ArrayList([]u8) {
     defer parsedBody.deinit();
 
     if (parsedBody.value.array.items.len == 0) return error.EmptyResponse;
+    if (parsedBody.value.array.items[0].array.items.len == 0) return error.EmptyResponse;
 
-    var parsedPairs = std.ArrayList([]u8).init(allocator);
+    var resPairs = std.ArrayList([]u8).init(allocator);
     for (parsedBody.value.array.items[0].array.items) |pair| {
-        const prefixed = try std.fmt.allocPrint(allocator, "t{s}", .{pair.string});
-        try parsedPairs.append(prefixed);
+        const pair_copy = try allocator.dupe(u8, pair.string);
+        try resPairs.append(pair_copy);
     }
 
-    return parsedPairs;
+    return resPairs.toOwnedSlice();
 }
