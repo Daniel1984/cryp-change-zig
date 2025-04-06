@@ -15,12 +15,13 @@ pub fn main() !void {
     var env = Env.init(allocator);
     const port: u16 = env.getInt(u16, "PORT", 5888);
 
-    const bfx_trading_pairs = try bfx.fetchTradingPairs(allocator);
-    defer bfx_trading_pairs.deinit();
+    var bfxTp = try bfx.init(allocator, 10);
+    try bfxTp.start();
 
-    std.debug.print("Fetched {d} BFX trading pairs:\n", .{bfx_trading_pairs.items.len});
-    for (bfx_trading_pairs.items) |pair| {
-        std.debug.print("pair: {s}\n", .{pair});
+    // debug
+    const bfx_pairs = try bfxTp.getPairs();
+    for (bfx_pairs) |pair| {
+        std.debug.print("bfx pair: {s}\n", .{pair});
     }
 
     var app = App.init();
