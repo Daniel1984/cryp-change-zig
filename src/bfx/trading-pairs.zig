@@ -8,12 +8,12 @@ pub const Self = @This();
 
 allocator: std.mem.Allocator,
 pairs: [][]u8,
-interval_ns: i64,
+interval_ns: u64,
 is_running: bool,
 thread: ?std.Thread,
 mutex: std.Thread.Mutex,
 
-pub fn init(allocator: std.mem.Allocator, interval_seconds: i64) !Self {
+pub fn init(allocator: std.mem.Allocator, interval_seconds: u64) !Self {
     return Self{
         .allocator = allocator,
         .pairs = &[_][]u8{},
@@ -34,7 +34,7 @@ pub fn start(self: *Self) !void {
     if (fetchTradingPairs(self.allocator)) |pairs| {
         self.pairs = pairs;
     } else |err| {
-        std.debug.print("err making initial fetchTradingPairs call: {}\n", .{err});
+        std.log.warn("err making initial fetchTradingPairs call: {}\n", .{err});
     }
 
     self.is_running = true;
@@ -70,10 +70,10 @@ fn fetchLoop(self: *Self) void {
             self.pairs = new_pairs;
             self.mutex.unlock();
         } else |err| {
-            std.log.err("Failed to fetch trading pairs: {any}", .{err});
+            std.log.err("failed to fetch trading pairs: {any}", .{err});
         }
 
-        std.time.sleep(@intCast(self.interval_ns));
+        std.time.sleep(self.interval_ns);
     }
 }
 
@@ -97,6 +97,14 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
 
     var parsedBody = try json.parseFromSlice(json.Value, allocator, body, .{});
     defer parsedBody.deinit();
+
+    if (parsedBody.value == .null) {
+        return error.NullResponse;
+    }
+
+    if (parsedBody.value != .array) {
+        return error.NotAnArrayResponse;
+    }
 
     if (parsedBody.value.array.items.len == 0) return error.EmptyResponse;
     if (parsedBody.value.array.items[0].array.items.len == 0) return error.EmptyResponse;
