@@ -5,29 +5,19 @@ const App = @import("./app.zig");
 const Env = @import("./env.zig");
 const healtCheck = @import("./handlers/health-check.zig");
 const dummy = @import("./handlers/dummy.zig");
-const bfx_trading_pairs = @import("./bfx/trading-pairs.zig");
-const bfx_candles = @import("./bfx/candles.zig");
+const bfx_svc = @import("./bfx/service.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
     defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
     var env = Env.init(allocator);
     const port: u16 = env.getInt(u16, "PORT", 5888);
 
-    var bfx_tp = try bfx_trading_pairs.init(allocator, 10);
-    try bfx_tp.start();
-
-    const bfx_pairs = try bfx_tp.getPairs();
-    // debug
-    // for (bfx_pairs) |pair| {
-    //     std.debug.print("bfx pair: {s}\n", .{pair});
-    // }
-
-    var bfxCndls = try bfx_candles.init(allocator, 2);
-    const candles = try bfxCndls.fetchCandles(bfx_pairs);
-    std.debug.print("bfx candles: {any}\n", .{candles[0]});
+    var bfxsvc = try bfx_svc.init(allocator);
+    try bfxsvc.start();
+    defer bfxsvc.stop();
 
     var app = App.init();
     var server = try httpz.Server(*App).init(allocator, .{ .port = port, .address = "0.0.0.0" }, &app);
