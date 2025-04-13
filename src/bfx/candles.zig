@@ -1,20 +1,19 @@
 const std = @import("std");
 const Candle = @import("../models/candle.zig").Candle;
-const http = std.http;
-const heap = std.heap;
+const request = @import("../reqest.zig");
 const json = std.json;
 const time = std.time;
 
 pub const Self = @This();
 
 allocator: std.mem.Allocator,
-interval_ns: u64,
+req_delay: u64,
 mutex: std.Thread.Mutex,
 
-pub fn init(allocator: std.mem.Allocator, interval_seconds: u64) !Self {
+pub fn init(allocator: std.mem.Allocator, req_delay: u64) !Self {
     return Self{
         .allocator = allocator,
-        .interval_ns = interval_seconds * std.time.ns_per_s,
+        .req_delay = req_delay * std.time.ns_per_s,
         .mutex = std.Thread.Mutex{},
     };
 }
@@ -22,53 +21,38 @@ pub fn init(allocator: std.mem.Allocator, interval_seconds: u64) !Self {
 pub fn fetchCandles(
     self: *Self,
     pairs: [][]u8,
-) ![]Candle {
+) void {
     if (!self.mutex.tryLock()) {
-        return error.AlreadyProcessing;
+        std.log.info("someone calling fetchCandles while its still running", .{});
+        return;
     }
     defer self.mutex.unlock();
 
-    // create an ArrayList to collect candles
-    var candles = std.ArrayList(Candle).init(self.allocator);
-
     for (pairs) |pair| {
-        std.log.info("fetching for pair {s}\n", .{pair});
         if (self.fetchCandle(pair)) |candle| {
-            try candles.append(candle);
+            self.persist(candle);
         } else |err| {
             std.log.warn("failed to fetch candle for {s}: {any}", .{ pair, err });
         }
 
         // wait before next request
         if (pairs.len > 1) {
-            std.time.sleep(self.interval_ns);
+            std.time.sleep(self.req_delay);
         }
     }
 
-    return candles.toOwnedSlice();
+    return;
+}
+
+pub fn persist(_: *Self, c: Candle) void {
+    std.log.info("should persist bfx candle: {any}", .{c});
+    return;
 }
 
 pub fn fetchCandle(self: *Self, pair: []const u8) !Candle {
-    var client = http.Client{ .allocator = self.allocator };
-    defer client.deinit();
-
     var url_buf: [256]u8 = undefined;
     const url_str = try std.fmt.bufPrint(&url_buf, "https://api-pub.bitfinex.com/v2/candles/trade:1m:{s}/last", .{pair});
-
-    var headBuf: [4096]u8 = undefined;
-    const uri = try std.Uri.parse(url_str);
-    var req = try client.open(.GET, uri, .{ .server_header_buffer = &headBuf });
-    defer req.deinit();
-
-    try req.send();
-    try req.finish();
-    try req.wait();
-
-    if (req.response.status != .ok) {
-        return error.HttpRequestFailed;
-    }
-
-    const body = try req.reader().readAllAlloc(self.allocator, 256);
+    const body = try request.get(self.allocator, url_str, 256);
     defer self.allocator.free(body);
 
     var parsedBody = try json.parseFromSlice(json.Value, self.allocator, body, .{});
