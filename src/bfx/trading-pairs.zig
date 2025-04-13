@@ -1,6 +1,5 @@
 const std = @import("std");
-const http = std.http;
-const heap = std.heap;
+const request = @import("../reqest.zig");
 const json = std.json;
 const time = std.time;
 
@@ -25,6 +24,7 @@ pub fn init(allocator: std.mem.Allocator, interval_seconds: u64) !Self {
 }
 
 pub fn deinit(self: *Self) void {
+    self.allocator.free(self.pairs);
     self.stop();
 }
 
@@ -34,7 +34,7 @@ pub fn start(self: *Self) !void {
     if (fetchTradingPairs(self.allocator)) |pairs| {
         self.pairs = pairs;
     } else |err| {
-        std.log.warn("err making initial fetchTradingPairs call: {}\n", .{err});
+        std.log.warn("err making initial fetchTradingPairs call: {!}", .{err});
     }
 
     self.is_running = true;
@@ -67,6 +67,7 @@ fn fetchLoop(self: *Self) void {
     while (self.is_running) {
         if (fetchTradingPairs(self.allocator)) |new_pairs| {
             self.mutex.lock();
+            self.allocator.free(self.pairs);
             self.pairs = new_pairs;
             self.mutex.unlock();
         } else |err| {
@@ -78,21 +79,7 @@ fn fetchLoop(self: *Self) void {
 }
 
 fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
-    var client = http.Client{ .allocator = allocator };
-    defer client.deinit();
-
-    var headBuf: [4096]u8 = undefined;
-    const uri = try std.Uri.parse("https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange");
-    var req = try client.open(.GET, uri, .{ .server_header_buffer = &headBuf });
-    defer req.deinit();
-
-    try req.send();
-    try req.finish();
-    try req.wait();
-
-    if (req.response.status != .ok) return error.HttpRequestFailed;
-
-    const body = try req.reader().readAllAlloc(allocator, 1024 * 16);
+    const body = try request.get(allocator, "https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange", 1024 * 16);
     defer allocator.free(body);
 
     var parsedBody = try json.parseFromSlice(json.Value, allocator, body, .{});
@@ -107,6 +94,7 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
     }
 
     if (parsedBody.value.array.items.len == 0) return error.EmptyResponse;
+    if (parsedBody.value.array.items[0] != .array) return error.InvalidResponseFormat;
     if (parsedBody.value.array.items[0].array.items.len == 0) return error.EmptyResponse;
 
     var resPairs = std.ArrayList([]u8).init(allocator);
