@@ -3,6 +3,9 @@ services:
     build:
       dockerfile: ./Dockerfile
       context: .
+    depends_on:
+      pg:
+        condition: service_healthy
     ports:
       - "5882:5882"
     environment:
