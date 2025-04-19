@@ -1,19 +1,20 @@
 const std = @import("std");
-const tp = @import("./trading-pairs.zig");
-const c = @import("./candles.zig");
+const TradingPair = @import("./trading-pairs.zig").Self;
+const Candles = @import("./candles.zig").Self;
+const DB = @import("../db.zig").Self;
 
 pub const Self = @This();
 
 allocator: std.mem.Allocator,
-trading_pairs: tp.Self,
-candles: c.Self,
+trading_pairs: TradingPair,
+candles: Candles,
 is_running: bool,
 thread: ?std.Thread,
 mutex: std.Thread.Mutex,
 
-pub fn init(allocator: std.mem.Allocator) !Self {
-    const trading_pairs_svc = try tp.Self.init(allocator, 300);
-    const candles_svc = try c.Self.init(allocator, 2);
+pub fn init(allocator: std.mem.Allocator, db: *DB) !Self {
+    const trading_pairs_svc = try TradingPair.init(allocator, 300);
+    const candles_svc = try Candles.init(allocator, 2, db);
 
     return .{
         .allocator = allocator,
