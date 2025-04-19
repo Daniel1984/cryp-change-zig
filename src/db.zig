@@ -23,7 +23,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     pool.pwd = env.getString("POSTGRES_PASSWORD", "password");
     pool.db_name = env.getString("POSTGRES_DB", "crypchange");
 
-    pool.pool = try pg.Pool.init(allocator, .{ .size = 5, .connect = .{
+    pool.pool = try pg.Pool.init(allocator, .{ .size = 10, .connect = .{
         .port = env.getInt(u16, "POSTGRES_PORT", 5432),
         .host = pool.host,
     }, .auth = .{
