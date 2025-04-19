@@ -6,6 +6,7 @@ const Env = @import("./env.zig");
 const healtCheck = @import("./handlers/health-check.zig");
 const dummy = @import("./handlers/dummy.zig");
 const bfx_svc = @import("./bfx/service.zig");
+const DB = @import("./db.zig").Self;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -15,7 +16,10 @@ pub fn main() !void {
     var env = Env.init(allocator);
     const port: u16 = env.getInt(u16, "PORT", 5888);
 
-    var bfxsvc = try bfx_svc.init(allocator);
+    const dbpool = try DB.init(allocator);
+    defer dbpool.deinit();
+
+    var bfxsvc = try bfx_svc.init(allocator, dbpool);
     try bfxsvc.start();
     defer bfxsvc.stop();
 
