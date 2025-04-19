@@ -36,13 +36,13 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .zap = .{
-            .url = "git+https://github.com/zigzap/zap?ref=v0.9.1#ae5c9278335d8e1133cd6d22707323dda712e120",
-            .hash = "zap-0.8.0-AAAAAHquIwACI9dqts0y91vC4xRjsLQpu1srb6TOj2je",
-        },
         .httpz = .{
             .url = "git+https://github.com/karlseguin/http.zig?ref=master#cb760afdb50b1e4b3f37570e6ddbbd04bf9d5c32",
             .hash = "httpz-0.0.0-PNVzrK6uBgBYP4D-QGrd_g1A6ZS86NQcLJZEPZyRFFoH",
+        },
+        .pg = .{
+            .url = "git+https://github.com/karlseguin/pg.zig?ref=master#901c289368f0eae8e37ca90e3f806be9e3ff86f9",
+            .hash = "pg-0.0.0-Wp_7gRD-BQCbDvJEahLsdoxUdlR7BsmvPnQyYdGyQzEE",
         },
     },
     .paths = .{

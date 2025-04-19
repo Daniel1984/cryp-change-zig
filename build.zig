@@ -33,18 +33,18 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
-    const zap = b.dependency("zap", .{
-        .target = target,
-        .optimize = optimize,
-        .openssl = false, // set to true to enable TLS support
-    });
-    exe.root_module.addImport("zap", zap.module("zap"));
-
     const httpz = b.dependency("httpz", .{
         .target = target,
         .optimize = optimize,
     });
     exe.root_module.addImport("httpz", httpz.module("httpz"));
+
+    const pg = b.dependency("pg", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    exe.root_module.addImport("pg", pg.module("pg"));
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
