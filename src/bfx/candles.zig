@@ -1,6 +1,7 @@
 const std = @import("std");
 const Candle = @import("../models/candle.zig").Candle;
 const request = @import("../reqest.zig");
+const DB = @import("../db.zig").Self;
 const json = std.json;
 const time = std.time;
 
@@ -9,12 +10,14 @@ pub const Self = @This();
 allocator: std.mem.Allocator,
 req_delay: u64,
 mutex: std.Thread.Mutex,
+db: *DB,
 
-pub fn init(allocator: std.mem.Allocator, req_delay: u64) !Self {
+pub fn init(allocator: std.mem.Allocator, req_delay: u64, db: *DB) !Self {
     return Self{
         .allocator = allocator,
         .req_delay = req_delay * std.time.ns_per_s,
         .mutex = std.Thread.Mutex{},
+        .db = db,
     };
 }
 
@@ -44,9 +47,24 @@ pub fn fetchCandles(
     return;
 }
 
-pub fn persist(_: *Self, c: Candle) void {
-    std.log.info("should persist bfx candle: {any}", .{c});
-    return;
+pub fn persist(self: *Self, c: Candle) void {
+    _ = self.db.pool.exec(
+        \\ insert into candles
+        \\ (pair, exchange, h, l, o, c, v, timestamp)
+        \\ values
+        \\ ($1, $2, $3::double precision, $4::double precision, $5::double precision, $6::double precision, $7::double precision, $8)
+    , .{
+        c.pair,
+        c.exchange,
+        c.high,
+        c.low,
+        c.open,
+        c.close,
+        c.volume,
+        c.timestamp,
+    }) catch |err| {
+        std.log.err("failed inserting candle data {any}: {!}", .{ c, err });
+    };
 }
 
 pub fn fetchCandle(self: *Self, pair: []const u8) !Candle {
