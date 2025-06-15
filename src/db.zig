@@ -18,7 +18,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     var env = Env.init(allocator);
 
     pool.allocator = allocator;
-    pool.host = env.getString("POSTGRES_HOST", "pg");
+    pool.host = env.getString("POSTGRES_HOST", "0.0.0.0");
     pool.uname = env.getString("POSTGRES_USER", "postgres");
     pool.pwd = env.getString("POSTGRES_PASSWORD", "password");
     pool.db_name = env.getString("POSTGRES_DB", "crypchange");
