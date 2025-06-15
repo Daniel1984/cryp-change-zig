@@ -99,8 +99,13 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
 
     var resPairs = std.ArrayList([]u8).init(allocator);
     for (parsedBody.value.array.items[0].array.items) |pair| {
-        const pair_copy = try allocator.dupe(u8, pair.string);
-        try resPairs.append(pair_copy);
+        const pairStr = pair.string;
+        if ((std.mem.endsWith(u8, pairStr, "USD") or std.mem.endsWith(u8, pairStr, "UST")) and
+            !std.mem.startsWith(u8, pairStr, "TEST"))
+        {
+            const pair_copy = try allocator.dupe(u8, pairStr);
+            try resPairs.append(pair_copy);
+        }
     }
 
     return resPairs.toOwnedSlice();
