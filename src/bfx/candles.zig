@@ -35,7 +35,7 @@ pub fn fetchCandles(
         if (self.fetchCandle(pair)) |candle| {
             self.persist(candle);
         } else |err| {
-            std.log.warn("failed to fetch candle for {s}: {any}", .{ pair, err });
+            std.log.warn("failed to fetch bfx candle for {s}: {any}", .{ pair, err });
         }
 
         // wait before next request
