@@ -60,6 +60,6 @@ fn updateLoop(self: *Self) void {
             std.log.err("failed to get trading pairs: {any}", .{err});
         }
 
-        std.time.sleep(5 * std.time.ns_per_s);
+        std.Thread.sleep(5 * std.time.ns_per_s);
     }
 }

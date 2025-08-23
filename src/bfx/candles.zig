@@ -40,7 +40,7 @@ pub fn fetchCandles(
 
         // wait before next request
         if (pairs.len > 1) {
-            std.time.sleep(self.req_delay);
+            std.Thread.sleep(self.req_delay);
         }
     }
 
@@ -63,7 +63,7 @@ pub fn persist(self: *Self, c: Candle) void {
         c.volume,
         c.timestamp,
     }) catch |err| {
-        std.log.err("failed inserting candle data {any}: {!}", .{ c, err });
+        std.log.err("failed inserting candle data {any}: {}", .{ c, err });
     };
 }
 

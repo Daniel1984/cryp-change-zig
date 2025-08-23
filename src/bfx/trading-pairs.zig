@@ -34,7 +34,7 @@ pub fn start(self: *Self) !void {
     if (fetchTradingPairs(self.allocator)) |pairs| {
         self.pairs = pairs;
     } else |err| {
-        std.log.warn("err making initial fetchTradingPairs call: {!}", .{err});
+        std.log.warn("err making initial fetchTradingPairs call: {}", .{err});
     }
 
     self.is_running = true;
@@ -55,12 +55,12 @@ pub fn getPairs(self: *Self) ![][]u8 {
     self.mutex.lock();
     defer self.mutex.unlock();
 
-    var result = std.ArrayList([]u8).init(self.allocator);
+    var result = std.ArrayList([]u8){};
     for (self.pairs) |pair| {
         const prefixed = try std.fmt.allocPrint(self.allocator, "t{s}", .{pair});
-        try result.append(prefixed);
+        try result.append(self.allocator, prefixed);
     }
-    return result.toOwnedSlice();
+    return result.toOwnedSlice(self.allocator);
 }
 
 fn fetchLoop(self: *Self) void {
@@ -74,7 +74,7 @@ fn fetchLoop(self: *Self) void {
             std.log.err("failed to fetch trading pairs: {any}", .{err});
         }
 
-        std.time.sleep(self.interval_ns);
+        std.Thread.sleep(self.interval_ns);
     }
 }
 
@@ -97,16 +97,16 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
     if (parsedBody.value.array.items[0] != .array) return error.InvalidResponseFormat;
     if (parsedBody.value.array.items[0].array.items.len == 0) return error.EmptyResponse;
 
-    var resPairs = std.ArrayList([]u8).init(allocator);
+    var resPairs = std.ArrayList([]u8){};
     for (parsedBody.value.array.items[0].array.items) |pair| {
         const pairStr = pair.string;
         if ((std.mem.endsWith(u8, pairStr, "USD") or std.mem.endsWith(u8, pairStr, "UST")) and
             !std.mem.startsWith(u8, pairStr, "TEST"))
         {
             const pair_copy = try allocator.dupe(u8, pairStr);
-            try resPairs.append(pair_copy);
+            try resPairs.append(allocator, pair_copy);
         }
     }
 
-    return resPairs.toOwnedSlice();
+    return resPairs.toOwnedSlice(allocator);
 }

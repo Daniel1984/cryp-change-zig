@@ -5,16 +5,18 @@ pub fn get(allocator: std.mem.Allocator, url: []const u8, max_response_size: usi
     var client = http.Client{ .allocator = allocator };
     defer client.deinit();
 
-    var headBuf: [4096]u8 = undefined;
     const uri = try std.Uri.parse(url);
-    var req = try client.open(.GET, uri, .{ .server_header_buffer = &headBuf });
+    var req = try client.request(.GET, uri, .{});
     defer req.deinit();
 
-    try req.send();
-    try req.finish();
-    try req.wait();
+    try req.sendBodiless();
+    var response = try req.receiveHead(&.{});
 
-    if (req.response.status != .ok) return error.HttpRequestFailed;
+    if (response.head.status != .ok) return error.HttpRequestFailed;
 
-    return try req.reader().readAllAlloc(allocator, max_response_size);
+    // Buffer for the reader
+    var reader_buffer: [4096]u8 = undefined;
+    var body_reader = response.reader(&reader_buffer);
+
+    return try body_reader.readAlloc(allocator, max_response_size);
 }

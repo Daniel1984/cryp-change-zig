@@ -55,7 +55,7 @@ pub fn start(self: *Self) !void {
     if (fetchTradingPairs(self.allocator)) |pairs| {
         self.pairs = pairs;
     } else |err| {
-        std.log.warn("err making initial fetchTradingPairs call: {!}", .{err});
+        std.log.warn("err making initial fetchTradingPairs call: {}", .{err});
     }
 
     self.is_running = true;
@@ -76,12 +76,12 @@ pub fn getPairs(self: *Self) ![][]u8 {
     self.mutex.lock();
     defer self.mutex.unlock();
 
-    var result = std.ArrayList([]u8).init(self.allocator);
+    var result = std.ArrayList([]u8){};
     for (self.pairs) |pair| {
         const prefixed = try std.fmt.allocPrint(self.allocator, "t{s}", .{pair});
-        try result.append(prefixed);
+        try result.append(self.allocator, prefixed);
     }
-    return result.toOwnedSlice();
+    return result.toOwnedSlice(self.allocator);
 }
 
 fn fetchLoop(self: *Self) void {
@@ -95,7 +95,7 @@ fn fetchLoop(self: *Self) void {
             std.log.err("failed to fetch trading pairs: {any}", .{err});
         }
 
-        std.time.sleep(self.interval_ns);
+        std.Thread.sleep(self.interval_ns);
     }
 }
 
@@ -126,7 +126,7 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
         return error.EmptyResponse;
     }
 
-    var resPairs = std.ArrayList([]u8).init(allocator);
+    var resPairs = std.ArrayList([]u8){};
     for (dataField.array.items) |item| {
         if (item != .object) continue;
 
@@ -140,9 +140,9 @@ fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
             std.mem.endsWith(u8, symbol, "-USDC"))
         {
             const symbol_copy = try allocator.dupe(u8, symbol);
-            try resPairs.append(symbol_copy);
+            try resPairs.append(allocator, symbol_copy);
         }
     }
 
-    return resPairs.toOwnedSlice();
+    return resPairs.toOwnedSlice(allocator);
 }
