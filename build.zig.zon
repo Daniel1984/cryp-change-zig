@@ -28,7 +28,7 @@
 
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.15.1",
 
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
@@ -37,12 +37,12 @@
     // internet connectivity.
     .dependencies = .{
         .httpz = .{
-            .url = "git+https://github.com/karlseguin/http.zig?ref=master#cb760afdb50b1e4b3f37570e6ddbbd04bf9d5c32",
-            .hash = "httpz-0.0.0-PNVzrK6uBgBYP4D-QGrd_g1A6ZS86NQcLJZEPZyRFFoH",
+            .url = "git+https://github.com/karlseguin/http.zig?ref=master#c36e80f9cff70a0e2fc910cf647e2689374df58a",
+            .hash = "httpz-0.0.0-PNVzrFDABgDZtfzmUsdvwogq6pVjIwUUd2WNOl2mJCgk",
         },
         .pg = .{
-            .url = "git+https://github.com/karlseguin/pg.zig?ref=master#901c289368f0eae8e37ca90e3f806be9e3ff86f9",
-            .hash = "pg-0.0.0-Wp_7gRD-BQCbDvJEahLsdoxUdlR7BsmvPnQyYdGyQzEE",
+            .url = "git+https://github.com/karlseguin/pg.zig?ref=master#4c2602bad095f9d85b16711d12aa3a2bc7e169cc",
+            .hash = "pg-0.0.0-Wp_7gQ8FBgCRArfpYn9OdkUhGOUHVRXxB6h9S6lYu7bC",
         },
     },
     .paths = .{
