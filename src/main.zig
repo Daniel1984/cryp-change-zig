@@ -19,14 +19,15 @@ pub fn main() !void {
 
     const dbpool = try DB.init(allocator);
     defer dbpool.deinit();
+    try dbpool.ping();
 
     var bfxsvc = try bfx_svc.init(allocator, dbpool);
     try bfxsvc.start();
     defer bfxsvc.stop();
 
-    var kucoinsvc = try kucoin_svc.init(allocator, dbpool);
-    try kucoinsvc.start();
-    defer kucoinsvc.stop();
+    // var kucoinsvc = try kucoin_svc.init(allocator, dbpool);
+    // try kucoinsvc.start();
+    // defer kucoinsvc.stop();
 
     var app = App.init();
     var server = try httpz.Server(*App).init(allocator, .{ .port = port, .address = "0.0.0.0" }, &app);
