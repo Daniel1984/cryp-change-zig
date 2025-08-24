@@ -36,6 +36,13 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     return pool;
 }
 
+pub fn ping(self: *Self) !void {
+    var conn = try self.pool.acquire();
+    defer self.pool.release(conn);
+
+    _ = try conn.query("SELECT 1", .{});
+}
+
 pub fn deinit(self: *Self) void {
     self.pool.deinit();
     self.allocator.free(self.host);
