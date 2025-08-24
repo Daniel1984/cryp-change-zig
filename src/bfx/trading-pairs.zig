@@ -79,7 +79,7 @@ fn fetchLoop(self: *Self) void {
 }
 
 fn fetchTradingPairs(allocator: std.mem.Allocator) ![][]u8 {
-    const body = try request.get(allocator, "https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange", 1024 * 16);
+    const body = try request.get(allocator, "https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange");
     defer allocator.free(body);
 
     var parsedBody = try json.parseFromSlice(json.Value, allocator, body, .{});

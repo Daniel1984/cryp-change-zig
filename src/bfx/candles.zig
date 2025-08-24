@@ -70,7 +70,7 @@ pub fn persist(self: *Self, c: Candle) void {
 pub fn fetchCandle(self: *Self, pair: []const u8) !Candle {
     var url_buf: [256]u8 = undefined;
     const url_str = try std.fmt.bufPrint(&url_buf, "https://api-pub.bitfinex.com/v2/candles/trade:1m:{s}/last", .{pair});
-    const body = try request.get(self.allocator, url_str, 256);
+    const body = try request.get(self.allocator, url_str);
     defer self.allocator.free(body);
 
     var parsedBody = try json.parseFromSlice(json.Value, self.allocator, body, .{});
